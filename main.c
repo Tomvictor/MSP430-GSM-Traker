@@ -1,72 +1,81 @@
-//******************************************************************************
-//   MSP430G2xx3 Demo - USCI_A0, 115200 UART Echo ISR, DCO SMCLK, LPM4
-//
-//   Description: Echo a received character, RX ISR used. Normal mode is LPM4.
-//   Automatic clock activation for SMCLK through the USCI is demonstrated.
-//   All I/O configured as low outputs to eliminate floating inputs.
-//   USCI_A0 RX interrupt triggers TX Echo.
-//   Baud rate divider with 1MHz = 1MHz/115200 = ~8.7
-//   ACLK = n/a, MCLK = SMCLK = CALxxx_1MHZ = 1MHz
-//
-//                MSP430G2xx3
-//             -----------------
-//         /|\|              XIN|-
-//          | |                 |
-//          --|RST          XOUT|-
-//            |                 |
-//            |             P1.4|-->SMCLK = 1MHz (active on demand)
-//            |                 |
-//            |     P1.2/UCA0TXD|------------>
-//            |                 | 115200 - 8N1
-//            |     P1.1/UCA0RXD|<------------
-//
-//   D. Dang
-//   Texas Instruments Inc.
-//   February 2011
-//   Built with CCS Version 4.2.0 and IAR Embedded Workbench Version: 5.10
-//******************************************************************************
-#include <msp430.h>
 
+//******************************************************************************
+//  MSP430G2xx3 Demo - Basic Clock, LPM3 Using WDT ISR, VLO ACLK
+//
+//  Description: This program operates MSP430 normally in LPM3, pulsing P1.0
+//  ~ 6 second intervals. WDT ISR used to wake-up system. All I/O configured
+//  as low outputs to eliminate floating inputs. Current consumption does
+//  increase when LED is powered on P1.0. Demo for measuring LPM3 current.
+//  ACLK = VLO/2, MCLK = SMCLK = default DCO
+//
+//
+//           MSP430G2xx3
+//         ---------------
+//     /|\|            XIN|-
+//      | |               |
+//      --|RST        XOUT|-
+//        |               |
+//        |           P1.0|-->LED
+//
+//******************************************************************************
+
+
+#include <msp430.h>
+unsigned int count=0;
 int main(void)
 {
   WDTCTL = WDTPW + WDTHOLD;                 // Stop WDT
-  if (CALBC1_1MHZ==0xFF)					// If calibration constant erased
-  {
-    while(1);                               // do not load, trap CPU!!
-  }
-  DCOCTL = 0;                               // Select lowest DCOx and MODx settings
-  BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
-  DCOCTL = CALDCO_1MHZ;
+  BCSCTL1 |= DIVA_3;                        // ACLK/8
+  BCSCTL3 |= LFXT1S_2;                      // ACLK = VLO
+  //WDTCTL = WDT_ADLY_1000;                   // Interval timer
+  //IE1 |= WDTIE;                             // Enable WDT interrupt
   P1DIR = 0xFF;                             // All P1.x outputs
   P1OUT = 0;                                // All P1.x reset
-  P1SEL = BIT1 + BIT2 + BIT4;               // P1.1 = RXD, P1.2=TXD
-  P1SEL2 = BIT1 + BIT2;                     // P1.4 = SMCLK, others GPIO
   P2DIR = 0xFF;                             // All P2.x outputs
   P2OUT = 0;                                // All P2.x reset
-  P3DIR = 0xFF;                             // All P3.x outputs
-  P3OUT = 0;                                // All P3.x reset
-  UCA0CTL1 |= UCSSEL_2;                     // SMCLK
-  UCA0BR0 = 8;                              // 1MHz 115200
-  UCA0BR1 = 0;                              // 1MHz 115200
-  UCA0MCTL = UCBRS2 + UCBRS0;               // Modulation UCBRSx = 5
-  UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
-  IE2 |= UCA0RXIE;                          // Enable USCI_A0 RX interrupt
+  // from timer
+  CCTL0 = CCIE;                             // CCR0 interrupt enabled
+  CCR0 = 12500;
+  TACTL = TASSEL_1 + MC_1;                  // ACLK, contmode
 
+  __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 
+  /*
+   * Inbuild code for demo vlo
+  while(1)
+  {
+    int i;
+    P1OUT |= 0x01;                          // Set P1.0 LED on
+    for (i = 10000; i>0; i--);              // Delay
+    P1OUT &= ~0x01;                         // Reset P1.0 LED off
+    __bis_SR_register(LPM3_bits + GIE);     // Enter LPM3
+  }
+  */
+} //Main end
+// Timer A0 interrupt service routine
 
-  __bis_SR_register(LPM4_bits + GIE);       // Enter LPM4, interrupts enabled
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+	if (count == 6) {
+		P1OUT ^= BIT0 ;
+		count = 0 ;
+	}
+	count++ ;
+	CCR0 = 12500;                            // Add Offset to CCR0
 }
 
-// Echo back RXed character, confirm TX buffer is ready first
+
+/*
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=USCIAB0RX_VECTOR
-__interrupt void USCI0RX_ISR(void)
+#pragma vector=WDT_VECTOR
+__interrupt void watchdog_timer (void)
 #elif defined(__GNUC__)
-void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
+void __attribute__ ((interrupt(WDT_VECTOR))) watchdog_timer (void)
 #else
 #error Compiler not supported!
 #endif
 {
-  while (!(IFG2&UCA0TXIFG));                // USCI_A0 TX buffer ready?
-  UCA0TXBUF = UCA0RXBUF;                    // TX -> RXed character
+  __bic_SR_register_on_exit(LPM3_bits);     // Clear LPM3 bits from 0(SR)
 }
+*/
