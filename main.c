@@ -36,7 +36,7 @@ int main(void)
   // from timer
   CCTL0 = CCIE;                             // CCR0 interrupt enabled
   CCR0 = 12500;
-  TACTL = TASSEL_1 + MC_1;                  // ACLK, contmode
+  TACTL = TASSEL_1 + ID_3 + MC_1;                  // ACLK, contmode
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 
@@ -57,11 +57,11 @@ int main(void)
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A (void)
 {
-	if (count == 6) {
+	//if (count == 6) {
 		P1OUT ^= BIT0 ;
-		count = 0 ;
-	}
-	count++ ;
+	//	count = 0 ;
+	//}
+	//count++ ;
 	CCR0 = 12500;                            // Add Offset to CCR0
 }
 
