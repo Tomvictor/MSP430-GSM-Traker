@@ -58,18 +58,6 @@ int main(void)
   TACTL = TASSEL_1 + ID_3 + MC_2;                  // ACLK, contmode
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
-
-  /*
-   * Inbuild code for demo vlo
-  while(1)
-  {
-    int i;
-    P1OUT |= 0x01;                          // Set P1.0 LED on
-    for (i = 10000; i>0; i--);              // Delay
-    P1OUT &= ~0x01;                         // Reset P1.0 LED off
-    __bis_SR_register(LPM3_bits + GIE);     // Enter LPM3
-  }
-  */
 } //Main end
 
 // Timer A0 interrupt service routine
@@ -95,18 +83,3 @@ __interrupt void Timer_A1(void)
            break;
  }
 }
-
-
-/*
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=WDT_VECTOR
-__interrupt void watchdog_timer (void)
-#elif defined(__GNUC__)
-void __attribute__ ((interrupt(WDT_VECTOR))) watchdog_timer (void)
-#else
-#error Compiler not supported!
-#endif
-{
-  __bic_SR_register_on_exit(LPM3_bits);     // Clear LPM3 bits from 0(SR)
-}
-*/
