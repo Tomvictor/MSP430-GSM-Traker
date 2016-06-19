@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker Unix v4.4.6                    
 ******************************************************************************
->> Linked Sun Jun 19 15:29:29 2016
+>> Linked Sun Jun 19 18:04:07 2016
 
 OUTPUT FILE NAME:   <M66 GSMTraker.out>
-ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 0000c074
+ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 0000c078
 
 
 MEMORY CONFIGURATION
@@ -19,7 +19,7 @@ MEMORY CONFIGURATION
   INFOC                 00001040   00000040  00000000  00000040  RWIX
   INFOB                 00001080   00000040  00000000  00000040  RWIX
   INFOA                 000010c0   00000040  00000000  00000040  RWIX
-  FLASH                 0000c000   00003fde  0000009c  00003f42  RWIX
+  FLASH                 0000c000   00003fde  00000098  00003f46  RWIX
   BSLSIGNATURE          0000ffde   00000002  00000002  00000000  RWIX  ffff 
   INT00                 0000ffe0   00000002  00000002  00000000  RWIX
   INT01                 0000ffe2   00000002  00000000  00000002  RWIX
@@ -48,14 +48,14 @@ section   page    origin      length       input sections
                   000003b0    00000002     rts430_eabi.lib : boot.obj (.stack)
                   000003b2    0000004e     --HOLE--
 
-.text      0    0000c000    0000009c     
-                  0000c000    00000048     main.obj (.text:main)
-                  0000c048    0000002c     main.obj (.text:Timer_A1)
-                  0000c074    00000012     rts430_eabi.lib : boot_special.obj (.text:_c_int00_noinit_noargs_noexit)
-                  0000c086    00000008     main.obj (.text:Timer_A0)
-                  0000c08e    00000006     rts430_eabi.lib : isr_trap.obj (.text:_isr:__TI_ISR_TRAP)
-                  0000c094    00000004                     : pre_init.obj (.text:_system_pre_init)
-                  0000c098    00000004                     : exit.obj (.text:abort)
+.text      0    0000c000    00000098     
+                  0000c000    00000046     main.obj (.text:main)
+                  0000c046    0000001c     main.obj (.text:Timer_A1)
+                  0000c062    00000016     main.obj (.text:Timer_A0)
+                  0000c078    00000012     rts430_eabi.lib : boot_special.obj (.text:_c_int00_noinit_noargs_noexit)
+                  0000c08a    00000006                     : isr_trap.obj (.text:_isr:__TI_ISR_TRAP)
+                  0000c090    00000004                     : pre_init.obj (.text:_system_pre_init)
+                  0000c094    00000004                     : exit.obj (.text:abort)
 
 .cinit     0    0000c000    00000000     UNINITIALIZED
 
@@ -129,7 +129,7 @@ address   name
 00000057  BCSCTL1                      
 00000058  BCSCTL2                      
 00000053  BCSCTL3                      
-0000c098  C$$EXIT                      
+0000c094  C$$EXIT                      
 00000059  CACTL1                       
 0000005a  CACTL2                       
 000010fb  CALBC1_12MHZ                 
@@ -196,8 +196,8 @@ address   name
 000010c0  TLV_CHECKSUM                 
 000010f7  TLV_DCO_30_LEN               
 000010f6  TLV_DCO_30_TAG               
-0000c086  Timer_A0                     
-0000c048  Timer_A1                     
+0000c062  Timer_A0                     
+0000c046  Timer_A1                     
 0000005d  UCA0ABCTL                    
 00000062  UCA0BR0                      
 00000063  UCA0BR1                      
@@ -222,7 +222,7 @@ address   name
 00000120  WDTCTL                       
 00000400  __STACK_END                  
 00000050  __STACK_SIZE                 
-0000c08e  __TI_ISR_TRAP                
+0000c08a  __TI_ISR_TRAP                
 0000ffe0  __TI_int00                   
 0000ffe4  __TI_int02                   
 0000ffe6  __TI_int03                   
@@ -238,11 +238,11 @@ address   name
 0000fffc  __TI_int14                   
 ffffffff  __binit__                    
 ffffffff  __c_args__                   
-0000c074  _c_int00_noinit_noargs_noexit
+0000c078  _c_int00_noinit_noargs_noexit
 0000fffe  _reset_vector                
 000003b0  _stack                       
-0000c094  _system_pre_init             
-0000c098  abort                        
+0000c090  _system_pre_init             
+0000c094  abort                        
 ffffffff  binit                        
 0000c000  main                         
 
@@ -353,13 +353,13 @@ address   name
 000010fe  CALDCO_1MHZ                  
 000010ff  CALBC1_1MHZ                  
 0000c000  main                         
-0000c048  Timer_A1                     
-0000c074  _c_int00_noinit_noargs_noexit
-0000c086  Timer_A0                     
-0000c08e  __TI_ISR_TRAP                
-0000c094  _system_pre_init             
-0000c098  C$$EXIT                      
-0000c098  abort                        
+0000c046  Timer_A1                     
+0000c062  Timer_A0                     
+0000c078  _c_int00_noinit_noargs_noexit
+0000c08a  __TI_ISR_TRAP                
+0000c090  _system_pre_init             
+0000c094  C$$EXIT                      
+0000c094  abort                        
 0000ffe0  __TI_int00                   
 0000ffe4  __TI_int02                   
 0000ffe6  __TI_int03                   

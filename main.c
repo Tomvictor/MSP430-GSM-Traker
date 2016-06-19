@@ -51,11 +51,13 @@ int main(void)
   P2DIR = 0xFF;                             // All P2.x outputs
   P2OUT = 0;                                // All P2.x reset
   // from timer
-  CCTL0 = OUTMOD_4 + CCIE;                  // CCR0 toggle, interrupt enabled
-  CCTL1 = OUTMOD_4 + CCIE;                  // CCR1 toggle, interrupt enabled
-  CCTL2 = OUTMOD_4 + CCIE;                  // CCR1 toggle, interrupt enabled
-  CCR0 = 12500;
-  TACTL = TASSEL_1 + ID_3 + MC_2;                  // ACLK, contmode
+  CCTL0 =  CCIE;                  // CCR0 toggle, interrupt enabled
+  CCTL1 =  + CCIE;                  // CCR1 toggle, interrupt enabled
+  //CCTL2 = OUTMOD_4 + CCIE;                  // CCR1 toggle, interrupt enabled
+  TACTL = TASSEL_1 + ID_3 + MC_2;                  // ACLK, Timer A input divider: 3 - /8 ,Continous up
+
+  P1OUT |= BIT0 ;
+  CCR0 = 1000;
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 } //Main end
@@ -65,7 +67,8 @@ int main(void)
 __interrupt void Timer_A0 (void)
 
 {
-  CCR0 += 200;                              // Add Offset to CCR0
+  P1OUT ^= BIT0 ;
+  CCR1 = TAR + 2000 ;                              // Add Offset to CCR1
 }
 
 // Timer_A2 Interrupt Vector (TA0IV) handler
@@ -75,11 +78,17 @@ __interrupt void Timer_A1(void)
 {
   switch( TA0IV )
   {
-  case  2: CCR1 += 1000;                    // Add Offset to CCR1
+  case  2:
+	  //CCR1 += 1000 ;                    // Add Offset to CCR1
+	  P1OUT ^= BIT0 ;
+	  CCR0 = TAR + 1000   ;
+
            break;
-  case  4: CCR2 += 1000;                    // Add Offset to CCR1
+  case  4:
+	  //CCR2 += 1000;                    // Add Offset to CCR2
              break;
-  case 10: P1OUT ^= 0x01;                   // Timer_A3 overflow
+  case 10:
+	  //P1OUT ^= 0x01;                   // Timer_A3 overflow
            break;
  }
 }
