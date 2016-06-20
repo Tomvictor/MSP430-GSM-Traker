@@ -9,7 +9,6 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./main.obj" \
-"./working.obj" \
 "../lnk_msp430g2553.cmd" \
 $(GEN_CMDS__FLAG) \
 -l"libc.a" \
@@ -148,8 +147,8 @@ M66\ GSMTraker.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "main.obj" "working.obj" 
-	-$(RM) "main.pp" "working.pp" 
+	-$(RM) "main.obj" 
+	-$(RM) "main.pp" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
