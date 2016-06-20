@@ -157,11 +157,15 @@ __interrupt void Timer_A0 (void)
 
   if (count1 == 60){
 	  PWR_KEY_SW(); //Turn off the module
+	  DTR_PORT &= ~DTR_PIN ; //Pull DTR pin to Low
 	  CCR1 = TAR + OFF_TIME ;                              // Add Offset to CCR1
 	  count1 = 0 ;
   }
-  CCR0 = TAR + ON_TIME ;
-  count1++ ;
+  else{
+	  CCR0 = TAR + ON_TIME ;
+	  count1++ ;
+  }
+
 }
 
 // Timer_A2 Interrupt Vector (TA0IV) handler
@@ -172,19 +176,33 @@ __interrupt void Timer_A1(void)
   switch( TA0IV )
   {
   case  2:
-	  //CCR1 += 1000 ;                    // Add Offset to CCR1
-	  if(count2 == 20){
+	  if (count2 == 120){
 		  PWR_KEY_SW(); //Turn on the module
-		  count2 = 0;
+		   __delay_cycles(5000000); // Wait until all the serial outputs were printed
+		  initialise();
+		  __delay_cycles(3000000); // Wait until all the serial outputs were printed
+
+		  //Sleep code
+		  for (x=0; x < sizeof sleep; x++){
+		 	  UCA0TXBUF = sleep[x] ;
+		 	  TX_Flag = 0;
+		 	 // while(~TX_Flag) ;//wait for Tx_Flag to set indicating the transmision is complete, better option than delay
+		 	  __delay_cycles(100000);
+		  }//for end
+
+		  DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
+		  CCR0 = TAR + OFF_TIME ;
+		  count2 = 0 ;
 	  }
-	  P1OUT ^= BIT0 ;
-	  CCR0 = TAR + 1000   ;
-	  count2++ ;
+	  else{
+		  CCR1 = TAR + OFF_TIME ;
+		  count2++ ;
+	  }
 
            break;
   case  4:
 	  //CCR2 += 1000;                    // Add Offset to CCR2
-             break;
+           break;
   case 10:
 	  //P1OUT ^= 0x01;                   // Timer_A3 overflow
            break;
