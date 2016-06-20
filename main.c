@@ -1,5 +1,5 @@
 //*****************************************************************************
-//    MSP430G2553 Code for GSM Tracking Device
+//  MSP430G2553 Code for GSM Tracking Device
 //  Description: M66 - GSM/GPRS Module by Quectel
 //  > Turn the device in to sleep mode for 30 mints (Timer A)
 //  > Turn the device to power off for 2 Hr (Timer B)
@@ -46,15 +46,20 @@
 
 
 #include <msp430g2553.h>
-/*
+
+#define VDD_EXT_PORT       P2OUT
+#define PWR_KEY_PORT       P2OUT
+#define DTR_PORT           P2OUT
+
 #define VDD_EXT_PIN       BIT0
 #define PWR_KEY_PIN       BIT1
 #define DTR_PIN           BIT2
-*/
+
 //void UART_Tx(void);
 void initialise(void);
 void configure_GPIO(void);
 void configure_CLK(void);
+void PWR_KEY_SW(void);
 
 char string1[90], TxByte, RxByte;
 const char sleep[] = { "at+qsclk=1\n" },
@@ -65,8 +70,7 @@ const char sleep[] = { "at+qsclk=1\n" },
 		ipr[] = { "AT+IPR?\n"},
 		ipr1[] = { "AT+IPR=115200\n"},
 		w[] = { "AT&W\n"}    ;
-unsigned int i, s=0, sl_flag = 0, x = 0, count1 = 0, count2, TX_Flag=0;
-char j = 0, y = 0;
+unsigned int i, s=0, sl_flag = 0, x = 0, j = 0 ,count1 = 0, count2 = 0, TX_Flag=0;
 
 
 int main(void)
@@ -92,12 +96,13 @@ int main(void)
   TACTL = TASSEL_1 + ID_3 + MC_2;             // ACLK, Timer A input divider: 3 - /8 ,Continous up
 
   // 2.5 Sec delay to PWR Key Pin to turn on the module
-   P2OUT = BIT3 ;
-   __delay_cycles(2500000);
-   P2OUT &= ~BIT3 ;
+   PWR_KEY_SW();
+
    __bis_SR_register(GIE);       //  interrupts enabled
+   __delay_cycles(5000000); // Wait until all the serial outputs were printed
   initialise();
-  __delay_cycles(5000000); // Wait until all the serial outputs were printed
+  __delay_cycles(3000000); // Wait until all the serial outputs were printed
+
   //Sleep code
   for (x=0; x < sizeof sleep; x++){
  	  UCA0TXBUF = sleep[x] ;
@@ -106,12 +111,9 @@ int main(void)
  	  __delay_cycles(100000);
   }//for end
 
-  P2OUT |= BIT2 ; //Pull DTR pin to High
+  DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
 
 
-
-  //tom code
-  //P1OUT |= BIT0 ;
   //CCR0 = 1000;
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
@@ -123,7 +125,7 @@ __interrupt void USCI0TX_ISR(void)
 
 {
 	//P1OUT ^= BIT6 ;
-	TX_Flag = 1;
+	//TX_Flag = 1;
 	IE2 &= ~UCA0TXIE;                       // Disable USCI_A0 TX interrupt
 
 }
@@ -149,8 +151,13 @@ __interrupt void USCI0RX_ISR(void)
 __interrupt void Timer_A0 (void)
 
 {
-  P1OUT ^= BIT0 ;
+
+  if (count1 == 10){
+	  PWR_KEY_SW(); //Turn off the module
+	  count1 = 0 ;
+  }
   CCR1 = TAR + 2000 ;                              // Add Offset to CCR1
+  count1++ ;
 }
 
 // Timer_A2 Interrupt Vector (TA0IV) handler
@@ -162,8 +169,13 @@ __interrupt void Timer_A1(void)
   {
   case  2:
 	  //CCR1 += 1000 ;                    // Add Offset to CCR1
+	  if(count2 == 20){
+		  PWR_KEY_SW(); //Turn on the module
+		  count2 = 0;
+	  }
 	  P1OUT ^= BIT0 ;
 	  CCR0 = TAR + 1000   ;
+	  count2++ ;
 
            break;
   case  4:
@@ -204,6 +216,12 @@ void configure_GPIO(void){
 	  P3DIR = 0xFF;                             // All P3.x outputs
 	  P3OUT = 0;                                // All P3.x reset
 
+}
+//PWR_KEY S/L
+void PWR_KEY_SW(void){
+	PWR_KEY_PORT = PWR_KEY_PIN ;
+   __delay_cycles(2500000);
+   PWR_KEY_PORT &= ~ PWR_KEY_PIN ;
 }
 
 //Initialisation function start here
