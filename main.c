@@ -55,6 +55,9 @@
 #define PWR_KEY_PIN       BIT1
 #define DTR_PIN           BIT2
 
+#define ON_TIME		10875 // For 1 minutes
+#define OFF_TIME		21750 // For 2 minutes
+
 //void UART_Tx(void);
 void initialise(void);
 void configure_GPIO(void);
@@ -114,7 +117,7 @@ int main(void)
   DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
 
 
-  //CCR0 = 1000;
+  CCR0 = ON_TIME   ;
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 } //Main end
@@ -152,11 +155,12 @@ __interrupt void Timer_A0 (void)
 
 {
 
-  if (count1 == 10){
+  if (count1 == 60){
 	  PWR_KEY_SW(); //Turn off the module
+	  CCR1 = TAR + OFF_TIME ;                              // Add Offset to CCR1
 	  count1 = 0 ;
   }
-  CCR1 = TAR + 2000 ;                              // Add Offset to CCR1
+  CCR0 = TAR + ON_TIME ;
   count1++ ;
 }
 
