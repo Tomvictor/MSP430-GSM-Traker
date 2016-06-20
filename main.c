@@ -46,7 +46,11 @@
 
 
 #include <msp430g2553.h>
-
+/*
+#define VDD_EXT_PIN       BIT0
+#define PWR_KEY_PIN       BIT1
+#define DTR_PIN           BIT2
+*/
 //void UART_Tx(void);
 void initialise(void);
 void configure_GPIO(void);
@@ -68,37 +72,77 @@ char j = 0, y = 0;
 int main(void)
 {
   WDTCTL = WDTPW + WDTHOLD;                 // Stop WDT
-  //configure_CLKs
-    configure_CLK();
-    //ConfigureGPIOs
-    configure_GPIO();
-    //UART Codes
-    UCA0CTL1 |= UCSSEL_2;                     // SMCLK
-    UCA0BR0 = 8;                              // 1MHz 115200
-    UCA0BR1 = 0;                              // 1MHz 115200
-    UCA0MCTL = UCBRS2 + UCBRS0;               // Modulation UCBRSx = 5
-    UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
-    IE2 |= UCA0RXIE;                          // Enable USCI_A0 RX interrupt
-    // ok program starts here
+  // Configure_CLKs
+  configure_CLK();
+  // ConfigureGPIOs
+  configure_GPIO();
+  // UART Codes
+  UCA0CTL1 |= UCSSEL_2;                     // SMCLK
+  UCA0BR0 = 8;                              // 1MHz 115200
+  UCA0BR1 = 0;                              // 1MHz 115200
+  UCA0MCTL = UCBRS2 + UCBRS0;               // Modulation UCBRSx = 5
+  UCA0CTL1 &= ~UCSWRST;                     // **Initialize USCI state machine**
+  IE2 |= UCA0RXIE;                          // Enable USCI_A0 RX interrupt
+  // Ok program starts here
 
-
-  //WDTCTL = WDT_ADLY_1000;                   // Interval timer
-  //IE1 |= WDTIE;                             // Enable WDT interrupt
-  P1DIR = 0xFF;                             // All P1.x outputs
-  P1OUT = 0;                                // All P1.x reset
-  P2DIR = 0xFF;                             // All P2.x outputs
-  P2OUT = 0;                                // All P2.x reset
-  // from timer
-  CCTL0 =  CCIE;                  // CCR0 toggle, interrupt enabled
-  CCTL1 =  + CCIE;                  // CCR1 toggle, interrupt enabled
+  // Timer Configuration
+  CCTL0 =  CCIE;                    			 // CCR0 toggle, interrupt enabled
+  CCTL1 =  + CCIE;                 			 // CCR1 toggle, interrupt enabled
   //CCTL2 = OUTMOD_4 + CCIE;                  // CCR1 toggle, interrupt enabled
-  TACTL = TASSEL_1 + ID_3 + MC_2;                  // ACLK, Timer A input divider: 3 - /8 ,Continous up
+  TACTL = TASSEL_1 + ID_3 + MC_2;             // ACLK, Timer A input divider: 3 - /8 ,Continous up
 
-  P1OUT |= BIT0 ;
-  CCR0 = 1000;
+  // 2.5 Sec delay to PWR Key Pin to turn on the module
+   P2OUT = BIT3 ;
+   __delay_cycles(2500000);
+   P2OUT &= ~BIT3 ;
+   __bis_SR_register(GIE);       //  interrupts enabled
+  initialise();
+  __delay_cycles(5000000); // Wait until all the serial outputs were printed
+  //Sleep code
+  for (x=0; x < sizeof sleep; x++){
+ 	  UCA0TXBUF = sleep[x] ;
+ 	  TX_Flag = 0;
+ 	 // while(~TX_Flag) ;//wait for Tx_Flag to set indicating the transmision is complete, better option than delay
+ 	  __delay_cycles(100000);
+  }//for end
+
+  P2OUT |= BIT2 ; //Pull DTR pin to High
+
+
+
+  //tom code
+  //P1OUT |= BIT0 ;
+  //CCR0 = 1000;
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 } //Main end
+
+// USCI A0/B0 Transmit ISR
+#pragma vector=USCIAB0TX_VECTOR
+__interrupt void USCI0TX_ISR(void)
+
+{
+	//P1OUT ^= BIT6 ;
+	TX_Flag = 1;
+	IE2 &= ~UCA0TXIE;                       // Disable USCI_A0 TX interrupt
+
+}
+
+// USCI A0/B0 Receive ISR
+#pragma vector=USCIAB0RX_VECTOR
+__interrupt void USCI0RX_ISR(void)
+{
+	P1OUT ^= BIT0 ;
+	if(j>90){
+		for(s=0;s<91;s++){
+			string1[s++] = 0;
+		}
+		j = 0 ;
+	}
+	string1[j++] = UCA0RXBUF;
+
+}
+
 
 // Timer A0 interrupt service routine
 #pragma vector=TIMER0_A0_VECTOR
@@ -143,6 +187,7 @@ void configure_CLK(void){
 	  DCOCTL = 0;                               // Select lowest DCOx and MODx settings
 	  BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
 	  DCOCTL = CALDCO_1MHZ;
+	  // Settings specific to Timer A
 	  BCSCTL1 |= DIVA_3;                        // ACLK/8
 	  BCSCTL3 |= LFXT1S_2;                      // ACLK = VLO
 }
@@ -151,13 +196,14 @@ void configure_CLK(void){
 void configure_GPIO(void){
 	  P1DIR = 0xFF;                             // All P1.x outputs
 	  P1OUT = 0;                                // All P1.x reset
-	  P1SEL = BIT1 + BIT2 + BIT4;               // P1.1 = RXD, P1.2=TXD
+	  P1SEL = BIT1 + BIT2 ;               // P1.1 = RXD, P1.2=TXD
 	  P1SEL2 = BIT1 + BIT2;                     // P1.4 = SMCLK, others GPIO
 	  P2DIR = 0xFF;                             // All P2.x outputs
 	  P1DIR &= ~BIT4;							// Input for VDD Ext
 	  P2OUT = 0;                                // All P2.x reset
 	  P3DIR = 0xFF;                             // All P3.x outputs
 	  P3OUT = 0;                                // All P3.x reset
+
 }
 
 //Initialisation function start here
