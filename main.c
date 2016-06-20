@@ -82,8 +82,6 @@ int main(void)
     // ok program starts here
 
 
-  BCSCTL1 |= DIVA_3;                        // ACLK/8
-  BCSCTL3 |= LFXT1S_2;                      // ACLK = VLO
   //WDTCTL = WDT_ADLY_1000;                   // Interval timer
   //IE1 |= WDTIE;                             // Enable WDT interrupt
   P1DIR = 0xFF;                             // All P1.x outputs
@@ -145,6 +143,8 @@ void configure_CLK(void){
 	  DCOCTL = 0;                               // Select lowest DCOx and MODx settings
 	  BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
 	  DCOCTL = CALDCO_1MHZ;
+	  BCSCTL1 |= DIVA_3;                        // ACLK/8
+	  BCSCTL3 |= LFXT1S_2;                      // ACLK = VLO
 }
 
 
