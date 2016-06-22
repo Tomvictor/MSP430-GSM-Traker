@@ -117,7 +117,7 @@ int main(void)
   DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
 
 
-  CCR0 = ON_TIME   ;
+  CCR0 = TAR + ON_TIME   ;
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 } //Main end
