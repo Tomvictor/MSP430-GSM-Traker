@@ -51,12 +51,12 @@
 #define PWR_KEY_PORT       P2OUT
 #define DTR_PORT           P2OUT
 
-#define VDD_EXT_PIN       BIT0
-#define PWR_KEY_PIN       BIT1
+#define VDD_EXT_PIN       BIT4
+#define PWR_KEY_PIN       BIT3
 #define DTR_PIN           BIT2
 
-#define ON_TIME		10875 // For 1 minutes
-#define OFF_TIME		21750 // For 2 minutes
+#define ON_TIME		250 // For 1 minutes 10875
+#define OFF_TIME	500 // For 2 minutes 21750
 
 //void UART_Tx(void);
 void initialise(void);
@@ -73,8 +73,8 @@ const char sleep[] = { "at+qsclk=1\n" },
 		ipr[] = { "AT+IPR?\n"},
 		ipr1[] = { "AT+IPR=115200\n"},
 		w[] = { "AT&W\n"}    ;
-unsigned int i, s=0, sl_flag = 0, x = 0, j = 0 ,count1 = 0, count2 = 0, TX_Flag=0;
-
+unsigned int i, s=0, sl_flag = 0, x = 0, j = 0 , TX_Flag=0, flag1=0;
+int count1 = 0, count2 = 0 ;
 
 int main(void)
 {
@@ -93,9 +93,9 @@ int main(void)
   // Ok program starts here
 
   // Timer Configuration
-  CCTL0 =  CCIE;                    			 // CCR0 toggle, interrupt enabled
-  CCTL1 =  CCIE;                 			 // CCR1 toggle, interrupt enabled
-  //CCTL2 = OUTMOD_4 + CCIE;                  // CCR1 toggle, interrupt enabled
+  //CCTL0 =  CCIE;                    			 // CCR0 toggle, interrupt enabled
+  CCTL1 =   CCIE;                 			 // CCR1 toggle, interrupt enabled
+  CCTL2 =  CCIE;                  // CCR2 toggle, interrupt enabled
   TACTL = TASSEL_1 + ID_3 + MC_2;             // ACLK, Timer A input divider: 3 - /8 ,Continous up
 
   // 2.5 Sec delay to PWR Key Pin to turn on the module
@@ -117,7 +117,21 @@ int main(void)
   DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
 
 
-  CCR0 = TAR + ON_TIME   ;
+  CCR1 = TAR + ON_TIME   ; //turn on the timer
+
+  /*
+  while(1){
+	 for (x=0; x < sizeof sleep_Check; x++){
+	 		  UCA0TXBUF = sleep_Check[x] ;
+	 		  TX_Flag = 0;
+	 		 // while(~TX_Flag) ;//wait for Tx_Flag to set indicating the transmision is complete, better option than delay
+	 		  __delay_cycles(100000);
+
+	 	  }//for end
+	 __delay_cycles(3000000);
+  } //while end
+
+  */
 
   __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0 w/ interrupt
 } //Main end
@@ -138,36 +152,28 @@ __interrupt void USCI0TX_ISR(void)
 __interrupt void USCI0RX_ISR(void)
 {
 	P1OUT ^= BIT0 ;
+
 	if(j>90){
-		for(s=0;s<91;s++){
+		/*for(s=0;s<91;s++){
 			string1[s++] = 0;
-		}
+		}*/
 		j = 0 ;
 	}
 	string1[j++] = UCA0RXBUF;
 
 }
 
-
+/*
 // Timer A0 interrupt service routine
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A0 (void)
 
 {
-
-  if (count1 == 60){
-	  PWR_KEY_SW(); //Turn off the module
-	  DTR_PORT &= ~DTR_PIN ; //Pull DTR pin to Low
-	  CCR1 = TAR + OFF_TIME ;                              // Add Offset to CCR1
-	  count1 = 0 ;
-  }
-  else{
-	  CCR0 = TAR + ON_TIME ;
-	  count1++ ;
-  }
+flag1++;
+// nothing to do with CCR0 Now
 
 }
-
+*/
 // Timer_A2 Interrupt Vector (TA0IV) handler
 #pragma vector=TIMER0_A1_VECTOR
 __interrupt void Timer_A1(void)
@@ -176,7 +182,22 @@ __interrupt void Timer_A1(void)
   switch( TA0IV )
   {
   case  2:
-	  if (count2 == 120){
+	  if (count1 == 60){
+		 // P1OUT ^= BIT0 ; //test
+		  PWR_KEY_SW(); //Turn off the module
+		  DTR_PORT &= ~DTR_PIN ; //Pull DTR pin to Low
+		  CCR2 = TAR + OFF_TIME ;                              // Add Offset to CCR2
+		  count1 = 0 ;
+	  }
+	  else{
+		  CCR1 = TAR + ON_TIME ;
+		  count1++ ;
+		 // P1OUT ^= BIT6 ;
+	  }
+           break;
+  case  4:
+	  if (count2 == 60){
+		 // P1OUT ^= BIT6 ;  //test
 		  PWR_KEY_SW(); //Turn on the module
 		   __delay_cycles(5000000); // Wait until all the serial outputs were printed
 		  initialise();
@@ -191,16 +212,14 @@ __interrupt void Timer_A1(void)
 		  }//for end
 
 		  DTR_PORT |= DTR_PIN ; //Pull DTR pin to High
-		  CCR0 = TAR + OFF_TIME ;
+		  CCR1 = TAR + OFF_TIME ;
 		  count2 = 0 ;
 	  }
 	  else{
-		  CCR1 = TAR + OFF_TIME ;
+		  CCR2 = TAR + OFF_TIME ;
 		  count2++ ;
+		  //P1OUT ^= BIT0 ;
 	  }
-
-           break;
-  case  4:
 	  //CCR2 += 1000;                    // Add Offset to CCR2
            break;
   case 10:
@@ -299,4 +318,3 @@ void initialise(void){
 	 	  }//for end
 }
 //Initialisation function end here
-
